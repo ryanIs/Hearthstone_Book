@@ -1,18 +1,4 @@
-<template>
-	<img :src="card.cardImage"></img>
+<template functional>
+	<img :src="props.card.img" :alt="props.card.name">
 </template>
 
-<script>
-export default {
-	props: {
-		card: {
-			type: Object,
-			required: true,
-		},
-	},
-}
-</script>
-
-<style scoped>
-	
-</style>

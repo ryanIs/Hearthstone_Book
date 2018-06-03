@@ -3,14 +3,14 @@
 		<div class="container">
 			
 			<div class="header-container">
-				HEARTHSTONE CARDS
+				<costs @select="selectCost"/>
 			</div>
 
 			<div class="center-container">
 
 				<div class="travel-buttons-container">
 					<div class="travel-buttons button-left" @click="cycleBack">
-						<
+						&#8592;
 					</div>	
 				</div>
 				<div class="card-container">
@@ -23,7 +23,7 @@
 				
 				<div class="travel-buttons-container">
 					<div class="travel-buttons button-right" @click="cycleForward">
-						>
+						&#8594;
 					</div>
 				</div>
 			</div>
@@ -48,14 +48,17 @@
 	});
 */
 
-import card from "../components/card.vue";
+import Costs from './components/Costs.vue'
+import card from "../components/card.vue"
+
 export default {
 	components: {
-		card
+		card,
+		Costs
 	},
+
 	data() {
 		return {
-		
 			apiBase: "https://omgvamp-hearthstone-v1.p.mashape.com/cards",
 			apiKey: "aDmChYvfeCmshJkIxNzZ7TovY5Fvp1LgcFijsnQl8wojcuVxGD",
 		
@@ -71,7 +74,17 @@ export default {
 			],
 
 			cards:  [{}, {}, {}, {}, {}, {}, {}, {}],
+			
+			// Index of viewing for cardViewFiltered view
+			cardViewIndex: 0,
+			
+			// Max view (TODO: set maximum)
+			CARD_VIEW_INDEX_MAX: 9999,
 
+			// Dynamic collection of cards for viewing
+			cardViewFiltered: [],
+
+			// Database/cache of all cards after they are fetched from server
 			cardDatabase: {
 				/*
 				"0" : {
@@ -85,23 +98,32 @@ export default {
 
 		}
 	},
+
 	methods: {
+		selectCost(cost) {
+			console.log(`selected cost: `, cost)
+		},
 
 		cycleForward() {
-			console.info("cycle forward not implemented")
+			if (this.cardViewIndex < this.CARD_VIEW_INDEX_MAX) {
+				this.cardViewIndex += 8
+				this.setView(this.cardViewIndex)
+			}
 		},
+
 		cycleBack() {
-			console.info("cycle back not implemented")
+			if (this.cardViewIndex > 0) {
+				this.cardViewIndex -= 8
+				this.setView(this.cardViewIndex)
+			}
 		},
 
 		// Get image of a cards based on card cost
 		async getCardsByCost(cardCost, onSuccessCallback) {
-
 			// If this set of cards has not already been loaded
-			if(this.cardDatabase[cardCost] == null) {
-				
+			if (this.cardDatabase[cardCost] == null) {
 				// HTTP Request header and GET variables
-				var httpRequestObject = {
+				let httpRequestObject = {
 					headers: {
 						"X-Mashape-Key": this.apiKey
 					},
@@ -114,23 +136,20 @@ export default {
 				const response = await this.$http.get(this.apiBase, httpRequestObject) 
 				
 				if (response) {
-
 					// Set response data
-					var givenData = response.data
+					let givenData = response.data
 
-					// If received data is non null
-					if(response != null) {
-						if(givenData != null) {
-							
+					if (response) {
+						if (givenData) {
 							// Create COST object
-							var newCostObject = {}
+							let newCostObject = {}
 
 							// Loop through STANDARD card sets and add cards to an object
-							for(var i = 0; i < this.HEARTHSTONE_CARD_SEGMENTS.length; i++) {
-								if(givenData[ this.HEARTHSTONE_CARD_SEGMENTS[i] ] != null) {
-									newCostObject[ this.HEARTHSTONE_CARD_SEGMENTS[i] ] = givenData[ this.HEARTHSTONE_CARD_SEGMENTS[i] ]
+							this.HEARTHSTONE_CARD_SEGMENTS.forEach(segment => {
+								if (givenData[segment]) {
+									newCostObject[segment] = givenData[segment]
 								}
-							}
+							}) 
 
 							// Add cards to card database
 							this.cardDatabase[cardCost] = newCostObject
@@ -144,15 +163,51 @@ export default {
 			}
 		},
 
+		// Gets cards into a flat viewing database
+		organizeCards() {
+			this.cardViewIndex = 0
+			this.cardViewFiltered = []
+			
+			this.HEARTHSTONE_CARD_SEGMENTS.forEach(segment => {
+				// Selected group of card object
+				let viewObject = this.cardDatabase[this.viewingCost][segment]
+
+				if (viewObject) {
+					viewObject.forEach(item => {
+						this.cardViewFiltered.push(item)
+					})
+				} else {
+					console.log("ERROR: viewObject is NULL (around line 174")
+				}
+			})
+		},
+		
+		// Display 8 cards (will eventually be based on a filter)
+		setView(index) {
+			// Move cards into a flattened array called cardViewFiltered
+			this.organizeCards()
+
+			this.cardViewIndex = index
+			this.cards = [];
+			
+			for (let i = index; i < index + 8; i++) {
+				this.cards.push( this.cardViewFiltered[i] )
+			}
+		},
+		
 		// Loads one-cost cards on load
 		async init() {
+			// Gets the cards by card-cost 1
 			const response = await this.getCardsByCost(this.viewingCost)
 			
-			if(response) {
-				console.log("output ", this.cardDatabase);
+			// Once that request returns, then populate the cards to screen
+			if (response) {
+				console.log("Database load(1) successful! ", this.cardDatabase)
+				this.setView(0);
 			}
 		}
 	},
+
 	mounted() {
 		this.init()
 	},
@@ -160,10 +215,19 @@ export default {
 </script>
 
 <style>
+	body {
+
+		background: #dcc;
+		background: linear-gradient(#dcc, #cbb);
+	}
+
+	.header-container{
+		margin: 20px 0;
+	}
 	.center-container{
 		display:flex;
 		justify-content: space-around;	
-		height:500px;
+		height:700px;
 		align-items: center;
 	}
 	
@@ -189,30 +253,59 @@ export default {
 		font-weight:300;
 		transition: all 0.2s;
 		cursor:pointer;
+
+		background-color: rgb(245, 247, 138)
 	}
 
-	.travel-buttons:hover{
+	.travel-buttons:hover {
 		color:#000000;
 		background-color:rgb(254, 255, 191);
+
+		/* spin to win */
+	    animation-name: spin;
+		animation-duration: 4000ms;
+		animation-iteration-count: infinite;
+		animation-timing-function: linear;
+	}
+
+	@keyframes spin {
 	}
 	
 	/* Cards */
 	.card-container {
-		width: 800px;
+		width: 850px;
 		height: 100%;
-		background: #ccc;
+		background: #ffe2b7;
+		background: linear-gradient(#ffe2b7, #ffca7a);
+		background: -webkit-linear-gradient(#ffe2b7, #ffca7a);
 		margin: 0 auto;
 		padding:10px;
+		box-shadow: 0 0 10px 3px rgba(0,0,0,0.2);
 
 		/* creates a 4 by 2 css-grid (4 columns, 2 rows) */
 		display:grid;
 		grid-template-columns: 1fr 1fr 1fr 1fr;
 		grid-template-rows: 1fr 1fr;
 		grid-gap: 10px;
+		
+	    animation-name: spin;
+		animation-duration: 4000ms;
+		animation-iteration-count: infinite;
+		animation-timing-function: linear;
+	
 	}
 
   .card-item {
-    border:1px solid;
+	  width: 100%;
+	  height: 100%;
+  }
+  .card-item /deep/ img {
+	  width: inherit;
+	  height: inherit;
+
+	  border-radius: 10px;
+	  box-shadow: 2px 2px 4px 2px rgba(0,0,0,0.1);
+	  background: rgba(256, 200, 180, 0.2);
   }
 
 	.card-row-container {

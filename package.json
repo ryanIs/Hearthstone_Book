@@ -1,7 +1,7 @@
 {
   "name": "hearthstone-book",
   "version": "1.0.0",
-  "private": public,
+  "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",

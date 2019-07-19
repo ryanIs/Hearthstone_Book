@@ -1,6 +1,7 @@
 .DS_Store
 node_modules
 /dist
+game_reference
 
 # local env files
 .env.local

@@ -138,7 +138,7 @@ export default {
     return {
 
       apiBase: "https://omgvamp-hearthstone-v1.p.mashape.com/cards",
-      apiKey: "aDmChYvfeCmshJkIxNzZ7TovY5Fvp1LgcFijsnQl8wojcuVxGD",
+      apiKey: "[KEY]",
 
       updatePage: 0,
 
